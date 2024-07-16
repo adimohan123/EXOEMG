@@ -45,7 +45,6 @@ model = Sequential()
 input_shape = (win_len, 10, 1)
 
 # Block 1
-# Block 1
 model.add(Conv2D(32, kernel_size=(1, 10), activation='relu', input_shape=input_shape, kernel_regularizer=l2(0.01)))
 model.add(BatchNormalization())
 model.add(Dropout(0.5))
@@ -56,7 +55,7 @@ model.add(BatchNormalization())
 model.add(AveragePooling2D(pool_size=(3, 1)))
 model.add(Dropout(0.5))
 
-# Block 3
+# Bock 3
 model.add(Conv2D(64, kernel_size=(5, 1), activation='relu', kernel_regularizer=l2(0.01)))
 model.add(BatchNormalization())
 model.add(AveragePooling2D(pool_size=(3, 1)))
@@ -88,13 +87,10 @@ early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weig
 batch_size = 32
 
 # Fit the model with fewer epochs and larger batch size
-history = model.fit(X_train, y_train, epochs=100, batch_size=batch_size, validation_split=0.2, callbacks=[early_stopping])
+tensorboard_callback = K.callbacks.TensorBoard(log_dir="./logs")
+history = model.fit(X_train, y_train, epochs=100, batch_size=batch_size, validation_split=0.2, callbacks=[tensorboard_callback,early_stopping])
 results = model.evaluate(X_test, y_test)
 print("test loss, test acc:", results)
-#test loss, test acc: [2.8804447650909424, 0.14748743176460266] with dense layers
-#test loss, test acc: [5.009033679962158, 0.3956112861633301] with 150 win len  gth and 30 stride
-#test loss, test acc: [3.130826473236084, 0.4532458782196045] epoch 100
-#test loss, test acc: [3.634037494659424, 0.49848636984825134]
 
 #with E3 data test loss, test acc: [2.728247880935669, 0.16291595995426178]
 # with new layers test loss, test acc: [2.8902149200439453, 0.15815623104572296]
