@@ -29,7 +29,7 @@ test_reps = [2,5,10]
 #data = normalise(data, train_reps) #sus
 data = filter_data(data=data, f=(20,40), butterworth_order=4, btype='bandpass')
 #data = rectify(data)
-
+print(data.shape)
 np.unique(data.stimulus)
 gestures = [i for i in range(1,24)]
 win_len = 150
@@ -87,10 +87,24 @@ early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weig
 batch_size = 32
 
 # Fit the model with fewer epochs and larger batch size
-tensorboard_callback = K.callbacks.TensorBoard(log_dir="./logs")
-history = model.fit(X_train, y_train, epochs=100, batch_size=batch_size, validation_split=0.2, callbacks=[tensorboard_callback,early_stopping])
+
+history = model.fit(X_train, y_train, epochs=100, batch_size=batch_size, validation_split=0.2, callbacks=[early_stopping])
 results = model.evaluate(X_test, y_test)
 print("test loss, test acc:", results)
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+# Plot the loss values
+epochs = range(1, len(loss) + 1)
+
+plt.plot(epochs, loss, 'bo', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+
+plt.show()
 
 #with E3 data test loss, test acc: [2.728247880935669, 0.16291595995426178]
 # with new layers test loss, test acc: [2.8902149200439453, 0.15815623104572296]
