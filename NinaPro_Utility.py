@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from scipy import signal
@@ -17,21 +18,28 @@ def get_data(path, file):
     data = pd.DataFrame(mat['emg'])
     data['stimulus'] = mat['restimulus']
     data['repetition'] = mat['repetition']
+    return data
 
     return data
+def get_data(full_file_path):
+    df = pd.read_csv(full_file_path)
+    df.rename(columns={'restimulus': 'stimulus'}, inplace=True)
+    return df
+
+
 
 
 def normalise(data, train_reps):
-    x = [np.where(data.values[:, 13] == rep) for rep in train_reps]
+    x = [np.where(data.values[:, 11] == rep) for rep in train_reps]
     indices = np.squeeze(np.concatenate(x, axis=-1))
     train_data = data.iloc[indices, :]
     train_data = data.reset_index(drop=True)
 
     scaler = StandardScaler(with_mean=True,
                             with_std=True,
-                            copy=False).fit(train_data.iloc[:, :12])
+                            copy=False).fit(train_data.iloc[:, :10])
 
-    scaled = scaler.transform(data.iloc[:, :12])
+    scaled = scaler.transform(data.iloc[:, :10])
     normalised = pd.DataFrame(scaled)
     normalised['stimulus'] = data['stimulus']
     normalised['repetition'] = data['repetition']
@@ -39,7 +47,7 @@ def normalise(data, train_reps):
 
 
 def filter_data(data, f, butterworth_order=4, btype='lowpass'):
-    emg_data = data.values[:, :12]
+    emg_data = data.values[:, :10]
 
     f_sampling = 2000
     nyquist = f_sampling / 2
@@ -68,31 +76,40 @@ def rectify(data):
 
 
 def windowing(data, reps, gestures, win_len, win_stride):
+    # Convert data to numpy array once for faster indexing
+    data_values = data.values
+
+    # Use boolean indexing instead of np.where
     if reps:
-        x = [np.where(data.values[:, 13] == rep) for rep in reps]
-        indices = np.squeeze(np.concatenate(x, axis=-1))
-        data = data.iloc[indices, :]
-        data = data.reset_index(drop=True)
-
+        mask = np.isin(data_values[:, 11], reps)
+        data_values = data_values[mask]
     if gestures:
-        x = [np.where(data.values[:, 12] == move) for move in gestures]
-        indices = np.squeeze(np.concatenate(x, axis=-1))
-        data = data.iloc[indices, :]
-        data = data.reset_index(drop=True)
+        mask = np.isin(data_values[:, 10], gestures)
+        data_values = data_values[mask]
 
-    idx = [i for i in range(win_len, len(data), win_stride)]
+    # Pre-calculate the number of windows
+    num_windows = (len(data_values) - win_len) // win_stride + 1
 
-    X = np.zeros([len(idx), win_len, len(data.columns) - 2])
-    y = np.zeros([len(idx), ])
-    reps = np.zeros([len(idx), ])
+    # Pre-allocate arrays
+    X = np.zeros((num_windows, win_len, 10))
+    y = np.zeros(num_windows, dtype=int)
+    reps_out = np.zeros(num_windows, dtype=int)
 
-    for i, end in enumerate(idx):
-        start = end - win_len
-        X[i] = data.iloc[start:end, 0:12].values
-        y[i] = data.iloc[end, 12]
-        reps[i] = data.iloc[end, 13]
+    # Use numpy's stride tricks for efficient windowing
+    from numpy.lib.stride_tricks import as_strided
 
-    return X, y, reps
+    X = as_strided(data_values[:, :10],
+                   shape=(num_windows, win_len, 10),
+                   strides=(data_values.strides[0] * win_stride,
+                            data_values.strides[0],
+                            data_values.strides[1]))
+
+    # Extract y and reps
+    end_indices = np.arange(win_len - 1, len(data_values), win_stride)
+    y = data_values[end_indices, 10]
+    reps_out = data_values[end_indices, 11]
+
+    return X, y, reps_out
 
 
 def train_model(model, X_train_wind, y_train_wind, X_test_wind, y_test_wind, save_to, epoch=300):
