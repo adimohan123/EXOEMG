@@ -8,8 +8,6 @@ file.close()
 print(imageData.shape)
 print(imageLabel.shape)
 
-df = pd.DataFrame(imageLabel)
-print(df)
 '''
 # Specify the HDF5 file path
 hdf5_file_path = r'C:\\Users\\Aweso\\Downloads\\The folder\\Data\\DB1_S1_image.h5'

@@ -30,12 +30,12 @@ data = filter_data(data=data, f=(20,40), butterworth_order=4, btype='bandpass')
 data = rectify(data)
 gestures = [i for i in range(1,24)]
 win_len = 12
-win_stride = 1
+win_stride = 12
 #data[:1000].plot(figsize = (15,10))
 #plt.show()
 X_train, y_train, r_train = windowingIMG(data, train_reps, gestures, win_len, win_stride)
 print("X_train")
-print( X_train.shape)
+print(X_train.shape)
 X_test, y_test, r_test = windowingIMG(data, test_reps, gestures, win_len, win_stride)
 print("X_test")
 print(X_test.shape)
