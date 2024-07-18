@@ -21,10 +21,10 @@ import matplotlib.pyplot as plt
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 
-db1_path = 'C:\\Users\\Aweso\\Downloads\\The folder\\Data\\DB1\\S3_A1_E3.csv'
+db1_path = 'C:\\Users\\Aweso\\Downloads\\The folder\\Data\\DB1\\S1_A1_E3.csv'
 data  = get_data_DB1_single(db1_path)
-train_reps = [1,3,4,6,7,8,9]
-test_reps = [2,5,10]
+train_reps = [4,6,7,8,9]
+test_reps = [2,5,1,3,10]
 data = normalise(data, train_reps)
 data = filter_data(data=data, f=(20,40), butterworth_order=4, btype='bandpass')
 data = rectify(data)
@@ -42,18 +42,18 @@ model = Sequential()
 input_shape = (win_len, 10, 1)
 
 # Block 1
-model.add(Conv2D(32, kernel_size=(1, 10), activation='relu', input_shape=input_shape, kernel_regularizer=l2(0.01)))
+model.add(Conv2D(32, kernel_size=(1, 10), activation='relu', input_shape=input_shape, kernel_regularizer=l2(0.001)))
 model.add(BatchNormalization())
 model.add(Dropout(0.5))
 
 # Block 2
-model.add(Conv2D(32, kernel_size=(3, 1), activation='relu', kernel_regularizer=l2(0.01)))
+model.add(Conv2D(32, kernel_size=(3, 1), activation='relu', kernel_regularizer=l2(0.0001)))
 model.add(BatchNormalization())
 model.add(AveragePooling2D(pool_size=(3, 1)))
 model.add(Dropout(0.5))
 
 # Bock 3
-model.add(Conv2D(64, kernel_size=(5, 1), activation='relu', kernel_regularizer=l2(0.01)))
+model.add(Conv2D(64, kernel_size=(5, 1), activation='relu', kernel_regularizer=l2(0.001)))
 model.add(BatchNormalization())
 model.add(AveragePooling2D(pool_size=(3, 1)))
 model.add(Dropout(0.5))
@@ -85,7 +85,7 @@ batch_size = 64
 
 # Fit the model with fewer epochs and larger batch size
 
-history = model.fit(X_train, y_train, epochs=100, batch_size=batch_size, validation_split=0.6)#callbacks=[early_stopping]
+history = model.fit(X_train, y_train, epochs=50, batch_size=batch_size, validation_split=0.6)#callbacks=[early_stopping]
 results = model.evaluate(X_test, y_test)
 print("test loss, test acc:", results)
 loss = history.history['loss']

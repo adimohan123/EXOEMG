@@ -19,12 +19,14 @@ def get_data_mat(path, file):
     data['stimulus'] = mat['restimulus']
     data['repetition'] = mat['repetition']
     return data
+
 def get_data_DB1_single(full_file_path):
     data = pd.read_csv(full_file_path)
     columns = [f'emg{x}' for x in range(10)]
-    columns.extend(["restimulus", "repetition"])
+    columns.extend(["restimulus", "rerepetition"])
     data = data[columns]
     data.rename(columns={'restimulus': 'stimulus'}, inplace=True)
+    data.rename(columns={'rerepetition': 'repetition'}, inplace=True)
     return data
 
 def get_data(full_file_path):
@@ -81,9 +83,9 @@ def rectify(data):
     return abs(data)
 
 
-def windowing(data, reps, gestures, win_len, win_stride):
+def windowing(dataframe, reps, gestures, win_len, win_stride):
     # Convert data to numpy array once for faster indexing
-    data_values = data.values
+    data_values = dataframe.values
 
     # Use boolean indexing instead of np.where
     if reps:
@@ -116,6 +118,74 @@ def windowing(data, reps, gestures, win_len, win_stride):
     reps_out = data_values[end_indices, 11]
 
     return X, y, reps_out
+
+def windowingIMG(data, reps, gestures, win_len, win_stride):
+  """
+  This function converts EMG data into windows of size win_len
+  and transforms them into 12x10 images, truncating test data
+  if necessary.
+
+  Args:
+      data: A pandas dataframe containing EMG data.
+      reps: (Optional) List of repetitions to filter data for.
+      gestures: (Optional) List of gestures to filter data for.
+      win_len: Window size (in data points) for creating images (default 12 - 120ms).
+      win_stride: Stride size (in data points) for window movement (default 1).
+
+  Returns:
+      X: A numpy array of shape (num_windows, 12, 10) representing EMG images.
+      y: A numpy array of shape (num_windows,) containing gesture labels.
+      reps_out: A numpy array of shape (num_windows,) containing repetition labels.
+  """
+
+  # Convert data to numpy array once for faster indexing
+  data_values = data.values
+
+  # Use boolean indexing instead of np.where
+  if reps:
+      mask = np.isin(data_values[:, 11], reps)
+      data_values = data_values[mask]
+  if gestures:
+      mask = np.isin(data_values[:, 10], gestures)
+      data_values = data_values[mask]
+
+  # Calculate usable data length (divisible by win_len)
+  usable_length = data_values.shape[0] - (data_values.shape[0] % win_len)
+
+  # Truncate data if necessary
+  if usable_length < data_values.shape[0]:
+      data_values = data_values[:usable_length, :]
+      print(f"Truncated test data by {data_values.shape[0] - usable_length} entries.")
+
+  # Calculate number of windows
+  num_windows = (usable_length - win_len) // win_stride + 1
+
+  # Pre-allocate arrays
+  X = np.zeros((num_windows, win_len, 10))  # Reshaped for 12x10 image
+  y = np.zeros(num_windows, dtype=int)
+  reps_out = np.zeros(num_windows, dtype=int)
+
+  # Use numpy's stride tricks for efficient windowing
+  from numpy.lib.stride_tricks import as_strided
+
+  # Reshape data for image creation (12 rows, remaining data points as columns)
+  data_for_image = data_values[:, :10].reshape(-1, win_len, 10)
+
+  # Use as_strided to create windows with desired stride
+  X = as_strided(data_for_image,
+                 shape=(num_windows, win_len, 10),
+                 strides=(data_for_image.strides[0] * win_stride,
+                          data_for_image.strides[1],
+                          data_for_image.strides[2]))
+
+  # Extract y and reps (consider adjusting index for label position)
+  end_indices = np.arange(win_len - 1, usable_length, win_stride)
+  y = data_values[end_indices, 10]
+  reps_out = data_values[end_indices, 11]
+
+  return X, y, reps_out
+
+
 
 
 def train_model(model, X_train_wind, y_train_wind, X_test_wind, y_test_wind, save_to, epoch=300):
