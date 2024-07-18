@@ -1,6 +1,7 @@
 from NinaPro_Utility import *
 
 import tensorflow as tf
+from tensorflow.keras.callbacks import ProgbarLogger
 from keras.regularizers import l2
 tf.config.set_soft_device_placement(True)
 tf.debugging.set_log_device_placement(True)
@@ -20,27 +21,23 @@ import matplotlib.pyplot as plt
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 
-
-db1_path = 'C:\\Users\\Aweso\\Downloads\\The folder\\Data\\DB1\\E3Data.csv'
-#TODO: detect Rest
-data  = get_data(db1_path)
+db1_path = 'C:\\Users\\Aweso\\Downloads\\The folder\\Data\\DB1\\S3_A1_E3.csv'
+data  = get_data_DB1_single(db1_path)
 train_reps = [1,3,4,6,7,8,9]
 test_reps = [2,5,10]
-data = normalise(data, train_reps) #sus
+data = normalise(data, train_reps)
 data = filter_data(data=data, f=(20,40), butterworth_order=4, btype='bandpass')
 data = rectify(data)
 print(data.shape)
-np.unique(data.stimulus)
 gestures = [i for i in range(1,24)]
 win_len = 70
-win_stride = 70
+win_stride = 10
 #data[:1000].plot(figsize = (15,10))
 #plt.show()
 X_train, y_train, r_train = windowing(data, train_reps, gestures, win_len, win_stride)
 X_test, y_test, r_test = windowing(data, test_reps, gestures, win_len, win_stride)
 y_train = get_categorical(y_train)
 y_test = get_categorical(y_test)
-#nodes = X_train.shape[1]
 model = Sequential()
 input_shape = (win_len, 10, 1)
 
@@ -82,12 +79,13 @@ model.summary()
 
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
 
+
 # Adjust the batch size
-batch_size = 32
+batch_size = 64
 
 # Fit the model with fewer epochs and larger batch size
 
-history = model.fit(X_train, y_train, epochs=100, batch_size=batch_size, validation_split=0.2)
+history = model.fit(X_train, y_train, epochs=100, batch_size=batch_size, validation_split=0.6)#callbacks=[early_stopping]
 results = model.evaluate(X_test, y_test)
 print("test loss, test acc:", results)
 loss = history.history['loss']

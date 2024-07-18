@@ -13,14 +13,20 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow import keras as K
 
 
-def get_data(path, file):
+def get_data_mat(path, file):
     mat = loadmat(os.path.join(path, file))
     data = pd.DataFrame(mat['emg'])
     data['stimulus'] = mat['restimulus']
     data['repetition'] = mat['repetition']
     return data
-
+def get_data_DB1_single(full_file_path):
+    data = pd.read_csv(full_file_path)
+    columns = [f'emg{x}' for x in range(10)]
+    columns.extend(["restimulus", "repetition"])
+    data = data[columns]
+    data.rename(columns={'restimulus': 'stimulus'}, inplace=True)
     return data
+
 def get_data(full_file_path):
     df = pd.read_csv(full_file_path)
     df.rename(columns={'restimulus': 'stimulus'}, inplace=True)
