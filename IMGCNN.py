@@ -64,7 +64,7 @@ batch_size = 32
 
 # Fit the model with fewer epochs and larger batch size
 
-history = model.fit(X_train, y_train, epochs=50, batch_size=batch_size, validation_split=0.6)#callbacks=[early_stopping]
+history = model.fit(X_train, y_train, epochs=5, batch_size=batch_size, validation_split=0.6)#callbacks=[early_stopping]
 results = model.evaluate(X_test, y_test)
 print("test loss, test acc:", results)
 loss = history.history['loss']
